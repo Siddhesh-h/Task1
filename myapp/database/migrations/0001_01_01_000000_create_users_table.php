@@ -15,6 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('phone_country_code', 5);
+            $table->string('phone_number', 15);
+            $table->string('gender');
+            $table->date('dob');
+            $table->string('qualification');
+            $table->string('work_experience');
+            $table->string('service');
+            $table->string('country');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

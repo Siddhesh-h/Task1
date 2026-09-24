@@ -18,14 +18,64 @@ class AuthController extends Controller
     //Register Controller
     public function register(Request $request){
         $validated = $request->validate([
-            "name" => "required|string|max:255",
+            "name" => "required|string|min:3|max:255",
             "email" => "required|email|unique:users,email",
+            'phone_country_code' => [
+                'required',
+                'in:+91,+44,+1,+61,+64',
+            ],
+
+            'phone_number' => [
+                'required',
+                'regex:/^[0-9]{7,15}$/',
+            ],
+
+            'gender' => [
+                'required',
+                'in:Male,Female,Other',
+            ],
+
+            'dob' => [
+                'required',
+                'date',
+                'before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
+            ],
+
+            'qualification' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'work_experience' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'service' => [
+                'required',
+                'in:PR Australia,PR Canada,TR Australia,TR Canada,Study Abroad,Post Graduate,Under Graduate,Tourist Visa',
+            ],
+
+            'country' => [
+                'required',
+                'in:UK,USA,Canada,Australia,New Zealand',
+            ],
             "password" => "required|string|min:8|confirmed",
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'phone_country_code' => $validated['phone_country_code'],
+            'phone_number' => $validated['phone_number'],
+            'gender' => $validated['gender'],
+            'dob' => $validated['dob'],
+            'qualification' => $validated['qualification'],
+            'work_experience' => $validated['work_experience'],
+            'service' => $validated['service'],
+            'country' => $validated['country'],
             'password' => Hash::make($validated['password']),
         ]);
 

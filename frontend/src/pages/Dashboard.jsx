@@ -53,6 +53,34 @@ export default function Dashboard() {
                                 </span>{" "}
                                 {user?.email}
                             </p>
+
+                            <p>
+                                <span className="font-medium text-slate-800">
+                                    Gender:
+                                </span>{" "}
+                                {user?.gender}
+                            </p>
+
+                            <p>
+                                <span className="font-medium text-slate-800">
+                                    DOB:
+                                </span>{" "}
+                                {user?.dob}
+                            </p>
+
+                            <p>
+                                <span className="font-medium text-slate-800">
+                                    Qualification:
+                                </span>{" "}
+                                {user?.qualification}
+                            </p>
+
+                            <p>
+                                <span className="font-medium text-slate-800">
+                                    Work Experience:
+                                </span>{" "}
+                                {user?.work_experience}
+                            </p>
                         </div>
                     </div>
                 </div>
