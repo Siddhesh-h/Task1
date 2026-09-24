@@ -1,40 +1,15 @@
-import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import api from "../services/api";
 
 export default function Dashboard() {
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
 
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const handleLogout = async () => {
+        await logout();
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const response = await api.get("/user");
-
-                setUser(response.data);
-            } catch (error) {
-                console.error("Authentication failed:", error);
-
-                localStorage.removeItem("auth_token");
-
-                navigate("/login");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUser();
-    }, [navigate]);
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-100">
-                <p className="text-slate-600">Loading...</p>
-            </div>
-        );
-    }
+        navigate("/login");
+    };
 
     return (
         <div className="min-h-screen bg-slate-100">
@@ -45,11 +20,8 @@ export default function Dashboard() {
                     </h1>
 
                     <button
-                        onClick={() => {
-                            localStorage.removeItem("auth_token");
-                            navigate("/login");
-                        }}
-                        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                        onClick={handleLogout}
+                        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
                     >
                         Logout
                     </button>
@@ -67,14 +39,18 @@ export default function Dashboard() {
                             Account Information
                         </h3>
 
-                        <div className="mt-4 space-y-2 text-sm">
+                        <div className="mt-4 space-y-2 text-sm text-slate-600">
                             <p>
-                                <span className="font-medium">Name:</span>{" "}
+                                <span className="font-medium text-slate-800">
+                                    Name:
+                                </span>{" "}
                                 {user?.name}
                             </p>
 
                             <p>
-                                <span className="font-medium">Email:</span>{" "}
+                                <span className="font-medium text-slate-800">
+                                    Email:
+                                </span>{" "}
                                 {user?.email}
                             </p>
                         </div>
