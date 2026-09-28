@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import toast from "react-hot-toast";
 
 export default function Register() {
     const navigate = useNavigate();
@@ -8,6 +9,7 @@ export default function Register() {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
+        phone_country: "IN",
         phone_country_code: "+91",
         phone_number: "",
         gender: "",
@@ -41,26 +43,36 @@ export default function Register() {
 
     const countries = ["UK", "USA", "Canada", "Australia", "New Zealand"];
 
-    const countryCodes = [
+    const phoneCountries = [
         {
+            country: "IN",
+            name: "India",
             code: "+91",
-            country: "India",
         },
         {
+            country: "GB",
+            name: "United Kingdom",
             code: "+44",
-            country: "UK",
         },
         {
+            country: "US",
+            name: "United States",
             code: "+1",
-            country: "USA / Canada",
         },
         {
+            country: "CA",
+            name: "Canada",
+            code: "+1",
+        },
+        {
+            country: "AU",
+            name: "Australia",
             code: "+61",
-            country: "Australia",
         },
         {
+            country: "NZ",
+            name: "New Zealand",
             code: "+64",
-            country: "New Zealand",
         },
     ];
 
@@ -102,6 +114,9 @@ export default function Register() {
         }
 
         // Phone country code
+        if (!formData.phone_country) {
+            newErrors.phone_country = "Phone country is required";
+        }
         if (!formData.phone_country_code) {
             newErrors.phone_country_code = "Phone country code is required.";
         }
@@ -195,10 +210,12 @@ export default function Register() {
             const response = await api.post("/register", formData);
 
             setSuccessMessage(response.data.message);
+            toast.success("Registration successfull");
 
             setFormData({
                 name: "",
                 email: "",
+                phone_country: "IN",
                 phone_country_code: "+91",
                 phone_number: "",
                 gender: "",
@@ -221,6 +238,7 @@ export default function Register() {
                 setErrors({
                     name: backendErrors.name?.[0] || "",
                     email: backendErrors.email?.[0] || "",
+                    phone_country: backendErrors.phone_country?.[0] || "",
                     phone_country_code:
                         backendErrors.phone_country_code?.[0] || "",
                     phone_number: backendErrors.phone_number?.[0] || "",
@@ -359,21 +377,44 @@ export default function Register() {
 
                             <div className="flex gap-3">
                                 <select
-                                    name="phone_country_code"
-                                    value={formData.phone_country_code}
-                                    onChange={handleChange}
-                                    className={`w-36 rounded-lg border bg-white px-3 py-3 text-sm outline-none focus:ring-2 ${
-                                        errors.phone_country_code
+                                    name="phone_country"
+                                    value={formData.phone_country}
+                                    onChange={(e) => {
+                                        const selectedCountry =
+                                            phoneCountries.find(
+                                                (item) =>
+                                                    item.country ===
+                                                    e.target.value,
+                                            );
+
+                                        setFormData((previousData) => ({
+                                            ...previousData,
+                                            phone_country:
+                                                selectedCountry.country,
+                                            phone_country_code:
+                                                selectedCountry.code,
+                                        }));
+
+                                        setErrors((previousErrors) => ({
+                                            ...previousErrors,
+                                            phone_country: "",
+                                            phone_country_code: "",
+                                        }));
+
+                                        setServerError("");
+                                    }}
+                                    className={`w-48 rounded-lg border bg-white px-3 py-3 text-sm outline-none focus:ring-2 ${
+                                        errors.phone_country
                                             ? "border-red-500 focus:border-red-500 focus:ring-red-100"
                                             : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"
                                     }`}
                                 >
-                                    {countryCodes.map((item) => (
+                                    {phoneCountries.map((item) => (
                                         <option
-                                            key={item.code}
-                                            value={item.code}
+                                            key={item.country}
+                                            value={item.country}
                                         >
-                                            {item.code} {item.country}
+                                            {item.name} {item.code}
                                         </option>
                                     ))}
                                 </select>
@@ -412,6 +453,12 @@ export default function Register() {
                                     }`}
                                 />
                             </div>
+
+                            {errors.phone_country && (
+                                <p className="mt-2 text-sm text-red-600">
+                                    {errors.phone_country}
+                                </p>
+                            )}
 
                             {errors.phone_country_code && (
                                 <p className="mt-2 text-sm text-red-600">

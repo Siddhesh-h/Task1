@@ -8,14 +8,6 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     const fetchUser = async () => {
-        const token = localStorage.getItem("auth_token");
-
-        if (!token) {
-            setUser(null);
-            setLoading(false);
-            return;
-        }
-
         try {
             const response = await api.get("/user");
 
@@ -23,7 +15,6 @@ export function AuthProvider({ children }) {
         } catch (error) {
             console.error("Authentication failed:", error);
 
-            localStorage.removeItem("auth_token");
             setUser(null);
         } finally {
             setLoading(false);
@@ -34,8 +25,7 @@ export function AuthProvider({ children }) {
         fetchUser();
     }, []);
 
-    const login = (token, userData) => {
-        localStorage.setItem("auth_token", token);
+    const login = (userData) => {
         setUser(userData);
     };
 
@@ -45,7 +35,6 @@ export function AuthProvider({ children }) {
         } catch (error) {
             console.error("Logout API error:", error);
         } finally {
-            localStorage.removeItem("auth_token");
             setUser(null);
         }
     };

@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
+import toast from "react-hot-toast";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -54,6 +55,15 @@ export default function Login() {
         return Object.keys(newErrors).length === 0;
     };
 
+    //needs to be changed
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        if (searchParams.get("google_error") === "1") {
+            setError("Google login failed. Please try again.");
+        }
+    }, [searchParams]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -70,11 +80,8 @@ export default function Login() {
 
             const response = await api.post("/login", formData);
 
-            const token = response.data.token;
-
-            // localStorage.setItem("auth_token", token);
-            login(token, response.data.user);
-
+            login(response.data.user);
+            toast.success("Login successfull");
             navigate("/dashboard");
         } catch (error) {
             if (error.response?.status === 422) {
@@ -88,6 +95,7 @@ export default function Login() {
                 setServerError(
                     error.response.data.message || "Invalid email or password.",
                 );
+                toast.error("Invalid email or password");
             } else {
                 setServerError(
                     error.response?.data?.message ||
@@ -182,12 +190,48 @@ export default function Login() {
                             )}
                         </div>
 
+                        <div className="flex justify-end mt-2 mb-4">
+                            <Link
+                                to="/forgot-password"
+                                className="text-sm text-blue-600 hover:underline"
+                            >
+                                Forgot Password?
+                            </Link>
+                        </div>
+
                         <button
                             type="submit"
                             disabled={loading}
                             className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {loading ? "Signing In..." : "Sign In"}
+                        </button>
+
+                        <div className="flex items-center gap-3 my-6">
+                            <div className="flex-1 h-px bg-gray-300"></div>
+
+                            <span className="text-sm text-gray-500">OR</span>
+
+                            <div className="flex-1 h-px bg-gray-300"></div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                window.location.href =
+                                    "http://localhost:8000/api/auth/google";
+                            }}
+                            className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-3 px-4 cursor-pointer transition hover:bg-gray-100 "
+                        >
+                            <img
+                                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                                alt="Google"
+                                className="w-5 h-5"
+                            />
+
+                            <span className="font-medium text-gray-700">
+                                Continue with Google
+                            </span>
                         </button>
                     </form>
 
