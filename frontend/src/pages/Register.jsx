@@ -2,6 +2,10 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
+import {
+    phoneCountries,
+    detectCountryFromNationalNumber,
+} from "../utils/phoneUtils";
 
 export default function Register() {
     const navigate = useNavigate();
@@ -30,6 +34,8 @@ export default function Register() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    const [phoneCountryLocked, setPhoneCountryLocked] = useState(false);
+
     const services = [
         "PR Australia",
         "PR Canada",
@@ -42,39 +48,6 @@ export default function Register() {
     ];
 
     const countries = ["UK", "USA", "Canada", "Australia", "New Zealand"];
-
-    const phoneCountries = [
-        {
-            country: "IN",
-            name: "India",
-            code: "+91",
-        },
-        {
-            country: "GB",
-            name: "United Kingdom",
-            code: "+44",
-        },
-        {
-            country: "US",
-            name: "United States",
-            code: "+1",
-        },
-        {
-            country: "CA",
-            name: "Canada",
-            code: "+1",
-        },
-        {
-            country: "AU",
-            name: "Australia",
-            code: "+61",
-        },
-        {
-            country: "NZ",
-            name: "New Zealand",
-            code: "+64",
-        },
-    ];
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -190,6 +163,33 @@ export default function Register() {
         setErrors(newErrors);
 
         return Object.keys(newErrors).length === 0;
+    };
+
+    const handlePhoneNumberChange = (value) => {
+        setFormData((previousData) => ({
+            ...previousData,
+            phone_number: value,
+        }));
+
+        if (!value || value.length < 7) {
+            setPhoneCountryLocked(false);
+            return;
+        }
+
+        const detected = detectCountryFromNationalNumber(value);
+
+        if (detected) {
+            setFormData((previousData) => ({
+                ...previousData,
+                phone_number: value,
+                phone_country: detected.country,
+                phone_country_code: detected.code,
+            }));
+
+            setPhoneCountryLocked(true);
+        } else {
+            setPhoneCountryLocked(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -338,7 +338,6 @@ export default function Register() {
                                 </p>
                             )}
                         </div>
-
                         {/* Email */}
                         <div>
                             <label
@@ -368,7 +367,6 @@ export default function Register() {
                                 </p>
                             )}
                         </div>
-
                         {/* Phone */}
                         <div>
                             <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -379,6 +377,7 @@ export default function Register() {
                                 <select
                                     name="phone_country"
                                     value={formData.phone_country}
+                                    disabled={phoneCountryLocked}
                                     onChange={(e) => {
                                         const selectedCountry =
                                             phoneCountries.find(
@@ -394,6 +393,8 @@ export default function Register() {
                                             phone_country_code:
                                                 selectedCountry.code,
                                         }));
+
+                                        setPhoneCountryLocked(false);
 
                                         setErrors((previousErrors) => ({
                                             ...previousErrors,
@@ -430,10 +431,7 @@ export default function Register() {
                                         );
 
                                         if (value.length <= 15) {
-                                            setFormData((previousData) => ({
-                                                ...previousData,
-                                                phone_number: value,
-                                            }));
+                                            handlePhoneNumberChange(value);
                                         }
 
                                         setErrors((previousErrors) => ({
@@ -472,7 +470,6 @@ export default function Register() {
                                 </p>
                             )}
                         </div>
-
                         {/* Gender & DOB*/}
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             {/* Gender */}
@@ -541,7 +538,6 @@ export default function Register() {
                                 )}
                             </div>
                         </div>
-
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             {/* Qualification */}
                             <div>
@@ -603,7 +599,6 @@ export default function Register() {
                                 )}
                             </div>
                         </div>
-
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             {/* Service */}
                             <div>
@@ -677,7 +672,6 @@ export default function Register() {
                                 )}
                             </div>
                         </div>
-
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             {/* Password */}
                             <div>
@@ -773,7 +767,6 @@ export default function Register() {
                                 )}
                             </div>
                         </div>
-
                         {/* Submit */}
                         <button
                             type="submit"
@@ -781,6 +774,29 @@ export default function Register() {
                             className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {loading ? "Creating Account..." : "Create Account"}
+                        </button>
+                        {/* Google Register */}
+                        <div className="my-6 flex items-center gap-4">
+                            <div className="h-px flex-1 bg-slate-300"></div>
+                            <span className="text-sm text-slate-500">OR</span>
+                            <div className="h-px flex-1 bg-slate-300"></div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                window.location.href =
+                                    "http://localhost:8000/api/auth/google";
+                            }}
+                            className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-3 px-4 cursor-pointer transition hover:bg-gray-100"
+                        >
+                            <img
+                                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                                alt="Google"
+                                className="w-5 h-5"
+                            />
+                            <span className="font-medium text-gray-700">
+                                Register with Google
+                            </span>
                         </button>
                     </form>
 

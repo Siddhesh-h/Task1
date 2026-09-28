@@ -49,6 +49,8 @@ Route::put('/profile', [
     'updateProfile',
 ])->middleware('jwt.cookie');
 
+Route::put('/change-password', [AuthController::class, 'changePassword'])->middleware('jwt.cookie');
+
 
 
 Route::post("/logout", [AuthController::class, "logout"])->middleware('jwt.cookie');

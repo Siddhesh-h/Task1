@@ -31,6 +31,19 @@ export default function Profile() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [originalData, setOriginalData] = useState(null);
+
+    const [showPasswordForm, setShowPasswordForm] = useState(false);
+
+    const [passwordData, setPasswordData] = useState({
+        current_password: "",
+        password: "",
+        password_confirmation: "",
+    });
+
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const [passwordErrors, setPasswordErrors] = useState({});
 
     const [formData, setFormData] = useState({
         name: "",
@@ -58,7 +71,7 @@ export default function Profile() {
 
             const user = response.data.user;
 
-            setFormData({
+            const profileData = {
                 name: user.name || "",
                 email: user.email || "",
                 phone_country: user.phone_country || "",
@@ -70,7 +83,10 @@ export default function Profile() {
                 work_experience: user.work_experience || "",
                 service: user.service || "",
                 country: user.country || "",
-            });
+            };
+
+            setFormData(profileData);
+            setOriginalData(profileData);
         } catch (error) {
             console.error("Profile fetch error:", error);
 
@@ -99,6 +115,30 @@ export default function Profile() {
         }));
     };
 
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleCancel = () => {
+        setFormData(originalData);
+        setErrors({});
+        setIsEditing(false);
+    };
+
+    const handlePasswordChange = (e) => {
+        const { name, value } = e.target;
+
+        setPasswordData((previousData) => ({
+            ...previousData,
+            [name]: value,
+        }));
+
+        setPasswordErrors((previousErrors) => ({
+            ...previousErrors,
+            [name]: "",
+        }));
+    };
+
     const handlePhoneCountryChange = (e) => {
         const selectedCountry = phoneCountries.find(
             (item) => item.country === e.target.value,
@@ -115,6 +155,56 @@ export default function Profile() {
             phone_country: "",
             phone_country_code: "",
         }));
+    };
+
+    const handlePasswordSubmit = async (e) => {
+        e.preventDefault();
+
+        setPasswordLoading(true);
+        setPasswordErrors({});
+
+        try {
+            await api.put("/change-password", passwordData);
+
+            toast.success("Password changed successfully.");
+
+            setPasswordData({
+                current_password: "",
+                password: "",
+                password_confirmation: "",
+            });
+
+            setShowPasswordForm(false);
+        } catch (error) {
+            console.error("Password change error:", error);
+
+            if (error.response?.status === 422) {
+                const backendErrors = error.response.data.errors || {};
+
+                setPasswordErrors({
+                    current_password:
+                        backendErrors.current_password?.[0] ||
+                        error.response.data.message ||
+                        "",
+
+                    password: backendErrors.password?.[0] || "",
+
+                    password_confirmation:
+                        backendErrors.password_confirmation?.[0] || "",
+                });
+
+                if (!backendErrors.current_password) {
+                    toast.error(
+                        error.response.data.message ||
+                            "Unable to change password.",
+                    );
+                }
+            } else {
+                toast.error("Unable to change password.");
+            }
+        } finally {
+            setPasswordLoading(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -141,6 +231,12 @@ export default function Profile() {
                 ...response.data.user,
             }));
 
+            setOriginalData({
+                ...formData,
+                ...response.data.user,
+            });
+
+            setIsEditing(false);
             toast.success("Profile updated successfully.");
         } catch (error) {
             console.error("Profile update error:", error);
@@ -183,14 +279,25 @@ export default function Profile() {
             <Navbar />
             <div className="px-4 py-10">
                 <div className="mx-auto max-w-4xl rounded-2xl bg-white p-6 shadow-md md:p-8">
-                    <div className="mb-8">
-                        <h1 className="text-2xl font-bold text-slate-800">
-                            My Profile
-                        </h1>
+                    <div className="mb-8 flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">
+                                My Profile
+                            </h1>
 
-                        <p className="mt-1 text-sm text-slate-500">
-                            Update your personal and application details.
-                        </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Update your personal and application details.
+                            </p>
+                        </div>
+                        {!isEditing && (
+                            <button
+                                type="button"
+                                onClick={handleEdit}
+                                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+                            >
+                                Edit Profile
+                            </button>
+                        )}
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-8">
@@ -245,10 +352,15 @@ export default function Profile() {
                                         name="phone_country"
                                         value={formData.phone_country}
                                         onChange={handlePhoneCountryChange}
+                                        disabled={!isEditing}
                                         className={`w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none ${
                                             errors.phone_country
                                                 ? "border-red-500"
                                                 : "border-slate-300"
+                                        } ${
+                                            !isEditing
+                                                ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                                                : "bg-white"
                                         }`}
                                     >
                                         <option value="">
@@ -288,11 +400,16 @@ export default function Profile() {
                                             name="phone_number"
                                             value={formData.phone_number}
                                             onChange={handleChange}
+                                            disabled={!isEditing}
                                             placeholder="Enter phone number"
                                             className={`min-w-0 flex-1 rounded-r-lg border px-4 py-3 text-sm outline-none ${
                                                 errors.phone_number
                                                     ? "border-red-500"
                                                     : "border-slate-300"
+                                            } ${
+                                                !isEditing
+                                                    ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                                                    : "bg-white"
                                             }`}
                                         />
                                     </div>
@@ -322,7 +439,12 @@ export default function Profile() {
                                         name="gender"
                                         value={formData.gender}
                                         onChange={handleChange}
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none"
+                                        disabled={!isEditing}
+                                        className={`w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none ${
+                                            !isEditing
+                                                ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                                                : "bg-white"
+                                        }`}
                                     >
                                         <option value="">Select gender</option>
                                         <option value="Male">Male</option>
@@ -341,7 +463,12 @@ export default function Profile() {
                                         name="dob"
                                         value={formData.dob}
                                         onChange={handleChange}
-                                        className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none"
+                                        disabled={!isEditing}
+                                        className={`w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none ${
+                                            !isEditing
+                                                ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                                                : "bg-white"
+                                        }`}
                                     />
                                 </div>
                             </div>
@@ -364,8 +491,13 @@ export default function Profile() {
                                         name="qualification"
                                         value={formData.qualification}
                                         onChange={handleChange}
+                                        disabled={!isEditing}
                                         placeholder="Enter qualification"
-                                        className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none"
+                                        className={`w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none ${
+                                            !isEditing
+                                                ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                                                : "bg-white"
+                                        }`}
                                     />
                                 </div>
 
@@ -379,8 +511,13 @@ export default function Profile() {
                                         name="work_experience"
                                         value={formData.work_experience}
                                         onChange={handleChange}
+                                        disabled={!isEditing}
                                         placeholder="Enter work experience"
-                                        className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none"
+                                        className={`w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none ${
+                                            !isEditing
+                                                ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                                                : "bg-white"
+                                        }`}
                                     />
                                 </div>
                             </div>
@@ -402,7 +539,12 @@ export default function Profile() {
                                         name="service"
                                         value={formData.service}
                                         onChange={handleChange}
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none"
+                                        disabled={!isEditing}
+                                        className={`w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none ${
+                                            !isEditing
+                                                ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                                                : "bg-white"
+                                        }`}
                                     >
                                         <option value="">Select service</option>
 
@@ -423,7 +565,12 @@ export default function Profile() {
                                         name="country"
                                         value={formData.country}
                                         onChange={handleChange}
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none"
+                                        disabled={!isEditing}
+                                        className={`w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none ${
+                                            !isEditing
+                                                ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                                                : "bg-white"
+                                        }`}
                                     >
                                         <option value="">Select country</option>
 
@@ -439,15 +586,182 @@ export default function Profile() {
 
                         {/* Actions */}
                         <div className="flex justify-end border-t border-slate-200 pt-6">
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {saving ? "Saving..." : "Save Profile"}
-                            </button>
+                            {isEditing && (
+                                <div className="flex justify-end gap-3 border-t border-slate-200 pt-6">
+                                    <button
+                                        type="button"
+                                        onClick={handleCancel}
+                                        disabled={saving}
+                                        className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {saving ? "Saving..." : "Save Changes"}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </form>
+                </div>
+
+                {/* Password change */}
+                <div className="mx-auto max-w-4xl mt-8 rounded-2xl bg-white p-6 shadow-md md:p-8">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-lg font-semibold text-slate-800">
+                                Password
+                            </h2>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                                Change your account password.
+                            </p>
+                        </div>
+
+                        {!showPasswordForm && (
+                            <button
+                                type="button"
+                                onClick={() => setShowPasswordForm(true)}
+                                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+                            >
+                                Change Password
+                            </button>
+                        )}
+                    </div>
+
+                    {showPasswordForm && (
+                        <form
+                            onSubmit={handlePasswordSubmit}
+                            className="mt-6 space-y-5"
+                        >
+                            {/* Current Password */}
+                            <div>
+                                <label
+                                    htmlFor="current_password"
+                                    className="mb-2 block text-sm font-medium text-slate-700"
+                                >
+                                    Current Password
+                                </label>
+
+                                <input
+                                    id="current_password"
+                                    type="password"
+                                    name="current_password"
+                                    value={passwordData.current_password}
+                                    onChange={handlePasswordChange}
+                                    placeholder="Enter current password"
+                                    className={`w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2 ${
+                                        passwordErrors.current_password
+                                            ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+                                            : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"
+                                    }`}
+                                />
+
+                                {passwordErrors.current_password && (
+                                    <p className="mt-2 text-sm text-red-600">
+                                        {passwordErrors.current_password}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* New Password */}
+                            <div>
+                                <label
+                                    htmlFor="password"
+                                    className="mb-2 block text-sm font-medium text-slate-700"
+                                >
+                                    New Password
+                                </label>
+
+                                <input
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    value={passwordData.password}
+                                    onChange={handlePasswordChange}
+                                    placeholder="Enter new password"
+                                    className={`w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2 ${
+                                        passwordErrors.password
+                                            ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+                                            : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"
+                                    }`}
+                                />
+
+                                {passwordErrors.password && (
+                                    <p className="mt-2 text-sm text-red-600">
+                                        {passwordErrors.password}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div>
+                                <label
+                                    htmlFor="password_confirmation"
+                                    className="mb-2 block text-sm font-medium text-slate-700"
+                                >
+                                    Confirm Password
+                                </label>
+
+                                <input
+                                    id="password_confirmation"
+                                    type="password"
+                                    name="password_confirmation"
+                                    value={passwordData.password_confirmation}
+                                    onChange={handlePasswordChange}
+                                    placeholder="Confirm new password"
+                                    className={`w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2 ${
+                                        passwordErrors.password_confirmation
+                                            ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+                                            : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"
+                                    }`}
+                                />
+
+                                {passwordErrors.password_confirmation && (
+                                    <p className="mt-2 text-sm text-red-600">
+                                        {passwordErrors.password_confirmation}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowPasswordForm(false);
+
+                                        setPasswordData({
+                                            current_password: "",
+                                            password: "",
+                                            password_confirmation: "",
+                                        });
+
+                                        setPasswordErrors({});
+                                    }}
+                                    disabled={passwordLoading}
+                                    className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    disabled={passwordLoading}
+                                    className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {passwordLoading
+                                        ? "Changing..."
+                                        : "Change Password"}
+                                </button>
+                            </div>
+                        </form>
+                    )}
                 </div>
             </div>
         </div>
